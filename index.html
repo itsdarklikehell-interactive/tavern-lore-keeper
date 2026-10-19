@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#1A120C">
+    <meta name="color-scheme" content="dark light">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
     <title>The Tavern Lore Keeper</title>
     <meta name="description" content="Taverns, rumors, mysterious patrons, and cursed items — literary flavor generators for your D&D table. One of each, on demand.">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍺</text></svg>">
@@ -87,7 +90,7 @@
             gap: 26px;
         }
 
-        header { text-align: center; }
+        header { text-align: center; position: relative; }
 
         .kicker {
             font-size: 14px;
@@ -328,6 +331,34 @@
             font-style: italic;
         }
 
+        :root[data-theme="light"] .footer-credit em {
+            color: var(--gold);
+            font-style: italic;
+        }
+
+        /* Fallback tint for the parchment accents that are hardcoded as
+           rgba(240, 230, 204, a) rather than driven by a custom property. */
+        :root[data-theme="light"] .guide p,
+        :root[data-theme="light"] .spread-body {
+            color: rgba(42, 30, 18, 0.82);
+        }
+
+        :root[data-theme="light"] .gen-btn.offering {
+            border-color: rgba(42, 30, 18, 0.5);
+        }
+
+        :root[data-theme="light"] .note {
+            color: rgba(42, 30, 18, 0.6);
+        }
+
+        :root[data-theme="light"] footer {
+            color: rgba(42, 30, 18, 0.45);
+        }
+
+        :root[data-theme="light"] .footer-credit {
+            color: rgba(42, 30, 18, 0.55);
+        }
+
         @media (max-width: 560px) {
             .tome { padding: 5vh 16px 8vh; }
             h1 { font-size: 32px; }
@@ -342,12 +373,100 @@
                 transition-duration: 0.01ms !important;
             }
         }
+
+        /* ============================================================
+           LIGHT THEME — a lit day-room rather than a candlelit cellar.
+           The default (no data-theme) remains the dark tavern look;
+           pwa.js sets data-theme="light" when the user asks for it.
+           ============================================================ */
+        :root[data-theme="light"] {
+            --leather-deep: #D8CBA8;
+            --leather: #EFE3C6;
+            --leather-mid: #E4D6B4;
+            --parchment: #F7EFDC;
+            --parchment-dim: #D9C69E;
+            --ink: #2A1E12;
+            --ink-soft: #4A3820;
+            --gold: #8A6D1F;
+            --gold-dim: #6E5719;
+            --wax: #8E2F2F;
+            --cream: #2A1E12;
+        }
+
+        :root[data-theme="light"] body {
+            background:
+                radial-gradient(90% 70% at 50% 12%, #F7EFDC 0%, var(--parchment) 55%, var(--leather) 100%);
+            color: var(--ink);
+        }
+
+        :root[data-theme="light"] body::before {
+            background: radial-gradient(38% 30% at 50% 26%, rgba(138, 109, 31, 0.10) 0%, rgba(138, 109, 31, 0) 70%);
+            animation: none;
+            opacity: 1;
+        }
+
+        :root[data-theme="light"] .card {
+            background: rgba(255, 251, 240, 0.85);
+            border-color: rgba(138, 109, 31, 0.35);
+            box-shadow: 0 18px 40px rgba(42, 30, 18, 0.12);
+        }
+
+        :root[data-theme="light"] .gen-btn {
+            background: rgba(255, 251, 240, 0.7);
+            border-color: rgba(138, 109, 31, 0.30);
+            color: var(--ink-soft);
+        }
+
+        :root[data-theme="light"] .gen-btn.selected {
+            background: var(--ink);
+            border-color: var(--ink);
+            color: var(--parchment);
+        }
+
+        :root[data-theme="light"] .spread-item {
+            background: rgba(255, 251, 240, 0.8);
+            border-color: rgba(138, 109, 31, 0.28);
+        }
+
+        :root[data-theme="light"] .note { color: var(--gold-dim); }
+
+        .theme-toggle {
+            position: absolute;
+            top: 0;
+            right: 0;
+            font-family: 'IM Fell English SC', Georgia, serif;
+            font-size: 13px;
+            letter-spacing: 0.08em;
+            padding: 6px 12px;
+            background: transparent;
+            border: 1px solid var(--gold-dim);
+            border-radius: 999px;
+            color: var(--gold-dim);
+            cursor: pointer;
+            transition: background 0.18s ease, color 0.18s ease;
+        }
+
+        .theme-toggle:hover {
+            background: var(--gold-dim);
+            color: var(--parchment);
+        }
+
+        :root[data-theme="light"] .theme-toggle {
+            border-color: var(--gold);
+            color: var(--gold);
+        }
+
+        :root[data-theme="light"] .theme-toggle:hover {
+            background: var(--gold);
+            color: var(--parchment);
+        }
     </style>
 </head>
 <body>
 
     <main class="tome">
         <header>
+            <button class="theme-toggle" id="themeToggle" type="button" aria-pressed="false" title="Switch to light mode">☀ light</button>
             <p class="kicker">from the keeper's own notebook</p>
             <h1>The Tavern Lore Keeper</h1>
             <div class="rule"></div>
@@ -387,6 +506,93 @@
     </main>
 
     <script>
+        /* ============================================================
+           PWA + dark mode bootstrap
+           Kept inline (not a separate .js file) so the page has no
+           cross-file dependency and works from any static host or
+           file:// checkout. Registers the service worker, then wires
+           the theme toggle: system preference + manual override,
+           persisted in localStorage.
+           ============================================================ */
+        (function () {
+            'use strict';
+
+            var THEME_KEY = 'tavern-lore-keeper:theme';
+            var root = document.documentElement;
+
+            // Resolve the active theme: an explicit user choice wins,
+            // otherwise follow the system preference. Only 'light' is a
+            // choice; anything else (empty string, junk) means "unset",
+            // so a cleared/blank localStorage still honours the OS.
+            function themeChoice() {
+                try {
+                    var v = window.localStorage.getItem(THEME_KEY);
+                    return v === 'light' ? 'light' : (v === 'dark' ? 'dark' : null);
+                } catch (e) {
+                    return null;
+                }
+            }
+
+            function systemTheme() {
+                return typeof window.matchMedia === 'function' &&
+                    window.matchMedia('(prefers-color-scheme: dark)').matches
+                    ? 'dark'
+                    : 'light';
+            }
+
+            function applyTheme(theme) {
+                var light = theme === 'light';
+                // Both states are always explicit. Leaving it implicit made
+                // the resolved theme indistinguishable from "the CSS
+                // default", which is untestable and hides mismatches.
+                root.setAttribute('data-theme', light ? 'light' : 'dark');
+
+                var meta = document.querySelector('meta[name="theme-color"]');
+                if (meta) meta.setAttribute('content', light ? '#EFE3C6' : '#1A120C');
+
+                var toggle = document.getElementById('themeToggle');
+                if (toggle) {
+                    toggle.setAttribute('aria-pressed', light ? 'true' : 'false');
+                    toggle.title = light ? 'Switch to dark mode' : 'Switch to light mode';
+                    toggle.textContent = light ? '☾ dark' : '☀ light';
+                }
+            }
+
+            // Resolve once at load: stored choice, else the system preference.
+            applyTheme(themeChoice() || systemTheme());
+
+            if (typeof window.matchMedia === 'function') {
+                var mq = window.matchMedia('(prefers-color-scheme: dark)');
+                var onChange = function () {
+                    // Only react to OS changes while the user has not chosen.
+                    if (!themeChoice()) applyTheme(systemTheme());
+                };
+                if (mq.addEventListener) mq.addEventListener('change', onChange);
+                else if (mq.addListener) mq.addListener(onChange);
+            }
+
+            document.addEventListener('click', function (e) {
+                var btn = e.target.closest && e.target.closest('#themeToggle');
+                if (!btn) return;
+                var current = themeChoice() || systemTheme();
+                var next = current === 'light' ? 'dark' : 'light';
+                try { window.localStorage.setItem(THEME_KEY, next); } catch (err) {
+                    /* storage unavailable (private mode) — session-only toggle */
+                }
+                applyTheme(next);
+            });
+
+            /* ---------- service worker ---------- */
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function () {
+                    navigator.serviceWorker.register('/sw.js').catch(function (error) {
+                        // A failed registration must never break the page.
+                        console.warn('Service worker registration failed:', error);
+                    });
+                });
+            }
+        })();
+
         /* ============================================================
            ENGINE — pure functions, no DOM. Extracted and exported by
            the test harness. rng is injected so tests are deterministic.

@@ -2,8 +2,18 @@
 const fs = require('fs');
 const path = require('path');
 const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
-const m = html.match(/<script>([\s\S]*?)<\/script>/);
-if (!m) { console.error('NO SCRIPT FOUND'); process.exit(1); }
+// Anchor on the engine block, not merely the first <script> in the page:
+// the PWA/dark-mode bootstrap is also a script block and may come first.
+const start = html.indexOf('ENGINE — pure functions, no DOM');
+if (start === -1) { console.error('NO ENGINE BLOCK FOUND'); process.exit(1); }
+// Rewind to the start of the comment line so the extracted block stays
+// syntactically valid JavaScript.
+const commentStart = html.lastIndexOf('/*', start);
+if (commentStart === -1) { console.error('NO COMMENT OPEN FOUND'); process.exit(1); }
+const tail = html.slice(commentStart);
+const end = tail.indexOf('</script>');
+if (end === -1) { console.error('NO SCRIPT CLOSE FOUND'); process.exit(1); }
+const m = [null, tail.slice(0, end)];
 
 fs.writeFileSync(path.join(__dirname, 'engine.js'),
   m[1] + '\nmodule.exports = { TAVERN_PREFIXES, TAVERN_NOUNS, TAVERN_FLAVOR, RUMOR_TARGETS, RUMOR_CLAIMS, RUMOR_WHISPERS, PATRON_LOOKS, PATRON_SECRETS, ITEM_NAMES, ITEM_CURSES, pick, genTavern, genRumor, genPatron, genItem, GENERATORS, generate, eveningOffering };'

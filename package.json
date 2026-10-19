@@ -4,7 +4,7 @@
   "description": "The Tavern Lore Keeper — a rumor-mill and flavor generator for D&D tables. Taverns, rumors, patrons, and cursed items in literary voice.",
   "private": true,
   "scripts": {
-    "test": "node test/engine.test.js && node test/ui.test.js"
+    "test": "node test/engine.test.js && node test/ui.test.js && node test/pwa.test.js"
   },
   "devDependencies": {
     "jsdom": "^26.1.0"
